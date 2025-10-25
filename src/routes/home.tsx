@@ -3,12 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 interface CirclesResponse {
-  id: number;
+  id: string;
   name: string;
   created_at: string;
   updated_at: string;
   created_by: {
-    id: number;
+    id: string;
     name: string;
     email: string;
     is_active: boolean;
@@ -48,16 +48,29 @@ const handleCreateCircle = async (name: string) => {
     throw new Error("Failed to create circle");
   }
 };
+
+const handleDeleteCircle = async (id: string) => {
+  const response = await fetch(`http://localhost:8000/api/v1/circles/${id}/`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to delete circle");
+  }
+};
 function RouteComponent() {
   const [circles, setCircles] = useState<CirclesResponse[]>([]);
   const [name, setName] = useState("");
+  const fetchCircles = async () => {
+    const data = await getCircles();
+    setCircles(data);
+  };
   useEffect(() => {
-    const fetchCircles = async () => {
-      const data = await getCircles();
-      setCircles(data);
-    };
     fetchCircles();
   }, []);
+
   return (
     <div>
       <input
@@ -66,11 +79,33 @@ function RouteComponent() {
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
-      <Button onClick={() => handleCreateCircle(name)}>Create Circle</Button>
+      <Button
+        onClick={async () => {
+          await handleCreateCircle(name);
+          fetchCircles();
+          setName("");
+        }}
+      >
+        Create Circle
+      </Button>
       <h1>Circles</h1>
-      {circles.map((circle) => (
-        <div key={circle.id}>{circle.name}</div>
-      ))}
+      <div className="flex flex-col gap-2">
+        {circles.map((circle) => (
+          <div key={circle.id} className="flex gap-2 items-center">
+            <div>{circle.name}</div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                await handleDeleteCircle(circle.id);
+                fetchCircles();
+              }}
+            >
+              delete
+            </Button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
